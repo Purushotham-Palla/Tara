@@ -11,6 +11,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Tara">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.json">
   <title>Tara - Daily Voice Standup</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -79,6 +81,17 @@
                 <p class="text-[10px] text-slate-400" id="schedule-countdown">Next call: 09:00 AM</p>
               </div>
               <input type="time" id="input-schedule-time" value="09:00" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- Lock Screen & Background Call Alert Toggle -->
+            <div class="pt-2 border-t border-slate-700/50 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-medium text-slate-200">Lock Screen Alerts</p>
+                <p class="text-[9px] text-slate-400" id="notif-status-label">Rings phone when app is closed</p>
+              </div>
+              <button type="button" id="btn-request-notif" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-medium px-2.5 py-1 rounded-md transition-colors">
+                Enable
+              </button>
             </div>
 
             <!-- Enhanced API Key Section -->
@@ -154,18 +167,156 @@
 
         <!-- Action Buttons -->
         <div class="space-y-1.5 pt-2">
+          <!-- In-App Install Prompt Button (Revealed when browser allows PWA install) -->
+          <button type="button" id="btn-install-pwa" class="hidden w-full bg-slate-800 hover:bg-slate-700 border border-indigo-500/40 text-indigo-300 font-medium py-2 rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5 shadow">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Install Tara App on Phone</span>
+          </button>
+
           <button id="btn-trigger-now" class="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             <span>Call Me Now (Talk to Tara)</span>
           </button>
-          <p class="text-[9px] text-center text-slate-500">Installable PWA App • Gemini 2.5 Native Live</p>
+          <p class="text-[9px] text-center text-slate-500">Live Voice Standup • Auto-Rings at Scheduled Time</p>
         </div>
       </div>
 
       <!-- SCREEN 2: INCOMING CALL RINGING SCREEN -->
       <div id="screen-ringing" class="hidden absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black p-8 flex flex-col justify-between items-center text-center z-20">
+        <div class="pt-8 space-y-4">
+          <div class="relative inline-block">
+            <div class="w-24 h-24 rounded-full bg-fuchsia-500/20 flex items-center justify-center pulse-animation">
+              <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-fuchsia-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-2xl">
+                <span class="text-3xl font-black text-white">T</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white tracking-wide">Tara</h2>
+            <p class="text-sm font-medium text-emerald-400 mt-1 animate-pulse">Incoming Daily Standup Call...</p>
+          </div>
+        </div>
+
+        <div class="w-full max-w-xs text-xs text-slate-400 bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+          "Hey! This is Tara, just checking in for our daily standup. Have you finished today's tasks?"
+        </div>
+
+        <!-- Call Action Buttons -->
+        <div class="w-full flex items-center justify-around pb-8">
+          <!-- Decline -->
+          <div class="flex flex-col items-center space-y-2">
+            <button id="btn-decline-call" class="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 flex items-center justify-center shadow-lg shadow-rose-600/40 text-white transition-all">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span class="text-xs text-slate-400">Decline</span>
+          </div>
+
+          <!-- Answer -->
+          <div class="flex flex-col items-center space-y-2">
+            <button id="btn-answer-call" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white call-ripple transition-all">
+              <svg class="w-8 h-8 rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </button>
+            <span class="text-xs text-emerald-400 font-medium">Answer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: ACTIVE LIVE CONVERSATION SCREEN -->
+      <div id="screen-active-call" class="hidden absolute inset-0 bg-slate-950 p-6 flex flex-col justify-between items-center z-20">
+        <!-- Call Header -->
+        <div class="w-full text-center pt-2">
+          <p class="text-xs tracking-widest text-emerald-400 font-semibold uppercase">Connected • Live Voice</p>
+          <h2 class="text-xl font-bold text-white mt-1">Tara</h2>
+          <p id="call-duration" class="text-xs font-mono text-slate-400 mt-0.5">00:00</p>
+        </div>
+
+        <!-- Voice Waves Visualizer -->
+        <div class="w-full flex flex-col items-center justify-center py-6">
+          <div class="w-28 h-28 rounded-full bg-slate-900 border-2 border-fuchsia-500/40 flex items-center justify-center shadow-xl relative">
+            <div id="ai-active-glow" class="absolute inset-0 rounded-full bg-fuchsia-500/20 blur-xl opacity-0 transition-opacity duration-300"></div>
+            <!-- Animated Soundbars -->
+            <div class="flex items-center space-x-1.5 h-12">
+              <span id="wave-1" class="wave-bar w-1.5 bg-indigo-400 rounded-full h-3"></span>
+              <span id="wave-2" class="wave-bar w-1.5 bg-fuchsia-400 rounded-full h-6"></span>
+              <span id="wave-3" class="wave-bar w-1.5 bg-emerald-400 rounded-full h-10"></span>
+              <span id="wave-4" class="wave-bar w-1.5 bg-sky-400 rounded-full h-4"></span>
+              <span id="wave-5" class="wave-bar w-1.5 bg-fuchsia-400 rounded-full h-8"></span>
+            </div>
+          </div>
+          <p id="live-audio-status" class="text-xs text-fuchsia-300 font-medium mt-4">Connecting to Tara...</p>
+        </div>
+
+        <!-- Live Spoken Transcript / Notes Box -->
+        <div class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 h-36 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
+            <span>Live Transcript & Status</span>
+            <span id="barge-in-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">Barge-in: Active</span>
+          </div>
+          <div id="transcript-stream" class="flex-1 overflow-y-auto text-xs text-slate-200 py-1 space-y-1 font-sans">
+            <p class="text-sky-300">Establishing real-time voice connection with Tara...</p>
+          </div>
+        </div>
+
+        <!-- In-Call Controls -->
+        <div class="w-full flex items-center justify-around pb-4">
+          <!-- Mute Mic -->
+          <button id="btn-toggle-mute" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all">
+            <svg id="icon-mic-on" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            <svg id="icon-mic-off" class="w-5 h-5 hidden text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </button>
+
+          <!-- End Call -->
+          <button id="btn-end-call" class="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 flex items-center justify-center shadow-lg shadow-rose-600/40 text-white transition-all">
+            <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z" />
+            </svg>
+          </button>
+
+          <!-- Speaker Output Volume Toggle -->
+          <button id="btn-toggle-speaker" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all">
+            <svg id="icon-speaker-on" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <svg id="icon-speaker-off" class="w-5 h-5 hidden text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Listen for Service Worker messages to trigger call automatically
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+          console.log('ServiceWorker registration optional:', err);
+        });
+      });
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.action === 'trigger_call') {
+          triggerIncomingCall();
+        }
+      });
+    }
+
+    // Auto-call if launched via notification between items-center text-center z-20">
         <div class="pt-8 space-y-4">
           <div class="relative inline-block">
             <div class="w-24 h-24 rounded-full bg-fuchsia-500/20 flex items-center justify-center pulse-animation">
