@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Tara - Daily Voice Standup</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    @keyframes ripple {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { box-shadow: 0 0 0 24px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .pulse-animation {
+      animation: pulse-ring 2.5s infinite ease-in-out;
+    }
+    .call-ripple {
+      animation: ripple 1.8s infinite;
+    }
+    .wave-bar {
+      transition: height 0.08s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-3 select-none font-sans">
+
+  <!-- In-Page Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 z-50 transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-2">
+    <div id="toast-message" class="bg-rose-600 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl border border-rose-400 flex items-center space-x-2">
+      <span id="toast-text">Notification</span>
+    </div>
+  </div>
+
+  <!-- Mobile Device Container -->
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[680px]">
+
+    <!-- Status Bar -->
+    <div class="h-8 bg-slate-950/60 flex items-center justify-between px-6 text-xs text-slate-400 z-10">
+      <span id="current-clock-display">09:00</span>
+      <div class="flex items-center space-x-1.5">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-[10px] tracking-wider font-medium">TARA v2.5</span>
+      </div>
+    </div>
+
+    <!-- MAIN SCREENS CONTAINER -->
+    <div class="flex-1 relative overflow-y-auto">
+
+      <!-- SCREEN 1: DASHBOARD & SCHEDULER VIEW -->
+      <div id="screen-dashboard" class="p-5 flex flex-col h-full justify-between overflow-y-auto">
+        <div class="space-y-3">
+          <div class="text-center pt-0.5">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-tr from-fuchsia-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-1.5">
+              <span class="text-2xl font-black text-white tracking-wider">T</span>
+            </div>
+            <h1 class="text-lg font-bold tracking-tight text-white">Tara • Daily Standup</h1>
+            <p class="text-[11px] text-slate-400">Your Personal Voice Accountability Partner</p>
+          </div>
+
+          <!-- Settings Card -->
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-slate-200">Daily Call Time</p>
+                <p class="text-[10px] text-slate-400" id="schedule-countdown">Next call: 09:00 AM</p>
+              </div>
+              <input type="time" id="input-schedule-time" value="09:00" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- Enhanced API Key Section -->
+            <div class="pt-2 border-t border-slate-700/50 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-[11px] font-medium text-slate-300">Gemini API Key</label>
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-400 hover:text-indigo-300 underline flex items-center space-x-0.5">
+                  <span>Get Free Key</span>
+                  <svg class="w-2.5 h-2.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+
+              <div class="relative flex items-center">
+                <input type="password" id="input-api-key" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg pl-2.5 pr-20 py-1.5 text-xs font-mono focus:outline-none focus:border-indigo-500">
+                <div class="absolute right-1 flex items-center space-x-1">
+                  <button type="button" id="btn-toggle-key-visibility" class="px-1.5 py-1 text-[10px] text-slate-400 hover:text-slate-200 rounded transition-colors" title="Toggle visibility">
+                    <span id="text-key-visibility">Show</span>
+                  </button>
+                  <button type="button" id="btn-clear-key" class="px-1.5 py-1 text-[10px] text-rose-400 hover:text-rose-300 rounded transition-colors" title="Clear key">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Action Buttons for Key -->
+              <div class="flex items-center justify-between pt-0.5">
+                <button type="button" id="btn-save-key" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-medium px-3 py-1 rounded-md transition-colors shadow">
+                  Save Key
+                </button>
+                <button type="button" id="btn-run-diagnostics" class="bg-slate-700 hover:bg-slate-600 text-sky-300 text-[10px] font-medium px-2.5 py-1 rounded-md transition-colors border border-slate-600 flex items-center space-x-1">
+                  <span>Run 1-Click Diagnostics</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Voice & Model Selector -->
+            <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-700/50">
+              <div>
+                <label class="block text-[11px] font-medium text-slate-300 mb-1">Tara's Voice</label>
+                <select id="select-voice" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500">
+                  <option value="Aoede">Aoede (Warm & Clear)</option>
+                  <option value="Kore">Kore (Gentle & Calm)</option>
+                  <option value="Puck">Puck (Crisp & Lively)</option>
+                  <option value="Charon">Charon (Deep & Steady)</option>
+                  <option value="Fenrir">Fenrir (Bold & Strong)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-slate-300 mb-1">Model Version</label>
+                <select id="select-model" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500">
+                  <option value="models/gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                  <option value="models/gemini-2.5-flash-native-audio-preview-12-2025">Gemini 2.5 Native</option>
+                  <option value="models/gemini-2.0-flash">Gemini 2.0</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Diagnostics Box -->
+          <div id="diagnostics-box" class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-[10px] space-y-1 font-mono">
+            <div class="flex items-center justify-between text-slate-400 font-sans font-semibold border-b border-slate-800 pb-1">
+              <span>System & Key Diagnostics</span>
+              <span id="diag-summary" class="text-indigo-400 font-normal">Ready to test</span>
+            </div>
+            <div id="diag-steps" class="space-y-0.5 text-slate-300 pt-0.5">
+              <p id="diag-key" class="text-slate-400">• API Key: Not tested yet</p>
+              <p id="diag-mic" class="text-slate-400">• Microphone: Not tested yet</p>
+              <p id="diag-socket" class="text-slate-400">• Live WebSocket: Not tested yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-1.5 pt-2">
+          <button id="btn-trigger-now" class="w-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span>Call Me Now (Test Tara's Call)</span>
+          </button>
+          <p class="text-[9px] text-center text-slate-500">v2.5 with v1beta endpoint & automatic model fallback</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: INCOMING CALL RINGING SCREEN -->
+      <div id="screen-ringing" class="hidden absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black p-8 flex flex-col justify-between items-center text-center z-20">
+        <div class="pt-8 space-y-4">
+          <div class="relative inline-block">
+            <div class="w-24 h-24 rounded-full bg-fuchsia-500/20 flex items-center justify-center pulse-animation">
+              <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-fuchsia-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-2xl">
+                <span class="text-3xl font-black text-white">T</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white tracking-wide">Tara</h2>
+            <p class="text-sm font-medium text-emerald-400 mt-1 animate-pulse">Incoming Daily Standup Call...</p>
+          </div>
+        </div>
+
+        <div class="w-full max-w-xs text-xs text-slate-400 bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+          "Hey! This is Tara, just checking in for our daily standup. Have you finished today's tasks?"
+        </div>
+
+        <!-- Call Action Buttons -->
+        <div class="w-full flex items-center justify-around pb-8">
+          <!-- Decline -->
+          <div class="flex flex-col items-center space-y-2">
+            <button id="btn-decline-call" class="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 flex items-center justify-center shadow-lg shadow-rose-600/40 text-white transition-all">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span class="text-xs text-slate-400">Decline</span>
+          </div>
+
+          <!-- Answer -->
+          <div class="flex flex-col items-center space-y-2">
+            <button id="btn-answer-call" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white call-ripple transition-all">
+              <svg class="w-8 h-8 rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </button>
+            <span class="text-xs text-emerald-400 font-medium">Answer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: ACTIVE LIVE CONVERSATION SCREEN -->
+      <div id="screen-active-call" class="hidden absolute inset-0 bg-slate-950 p-6 flex flex-col justify-between items-center z-20">
+        <!-- Call Header -->
+        <div class="w-full text-center pt-2">
+          <p class="text-xs tracking-widest text-emerald-400 font-semibold uppercase">Connected • Live Voice</p>
+          <h2 class="text-xl font-bold text-white mt-1">Tara</h2>
+          <p id="call-duration" class="text-xs font-mono text-slate-400 mt-0.5">00:00</p>
+        </div>
+
+        <!-- Voice Waves Visualizer -->
+        <div class="w-full flex flex-col items-center justify-center py-6">
+          <div class="w-28 h-28 rounded-full bg-slate-900 border-2 border-fuchsia-500/40 flex items-center justify-center shadow-xl relative">
+            <div id="ai-active-glow" class="absolute inset-0 rounded-full bg-fuchsia-500/20 blur-xl opacity-0 transition-opacity duration-300"></div>
+            <!-- Animated Soundbars -->
+            <div class="flex items-center space-x-1.5 h-12">
+              <span id="wave-1" class="wave-bar w-1.5 bg-indigo-400 rounded-full h-3"></span>
+              <span id="wave-2" class="wave-bar w-1.5 bg-fuchsia-400 rounded-full h-6"></span>
+              <span id="wave-3" class="wave-bar w-1.5 bg-emerald-400 rounded-full h-10"></span>
+              <span id="wave-4" class="wave-bar w-1.5 bg-sky-400 rounded-full h-4"></span>
+              <span id="wave-5" class="wave-bar w-1.5 bg-fuchsia-400 rounded-full h-8"></span>
+            </div>
+          </div>
+          <p id="live-audio-status" class="text-xs text-fuchsia-300 font-medium mt-4">Connecting to Tara...</p>
+        </div>
+
+        <!-- Live Spoken Transcript / Notes Box -->
+        <div class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 h-36 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
+            <span>Live Transcript & Status</span>
+            <span id="barge-in-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">Barge-in: Active</span>
+          </div>
+          <div id="transcript-stream" class="flex-1 overflow-y-auto text-xs text-slate-200 py-1 space-y-1 font-sans">
+            <p class="text-sky-300">Establishing real-time voice connection with Tara...</p>
+          </div>
+        </div>
+
+        <!-- In-Call Controls -->
+        <div class="w-full flex items-center justify-around pb-4">
+          <!-- Mute Mic -->
+          <button id="btn-toggle-mute" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all">
+            <svg id="icon-mic-on" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            <svg id="icon-mic-off" class="w-5 h-5 hidden text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </button>
+
+          <!-- End Call -->
+          <button id="btn-end-call" class="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 flex items-center justify-center shadow-lg shadow-rose-600/40 text-white transition-all">
+            <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z" />
+            </svg>
+          </button>
+
+          <!-- Speaker Output Volume Toggle -->
+          <button id="btn-toggle-speaker" class="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all">
+            <svg id="icon-speaker-on" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <svg id="icon-speaker-off" class="w-5 h-5 hidden text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- Application State ---
+    let ringtoneOscillator = null;
+    let audioContext = null;
+    let micMediaStream = null;
+    let scriptProcessor = null;
+    let webSocket = null;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+    let nextAudioPlayTime = 0;
+    let activeAudioSources = [];
+    let isMuted = false;
+    let isSpeakerMuted = false;
+    let sessionInitialized = false;
+
+    // Toast Notification Helper
+    function showToast(message, isError = true) {
+      const toastContainer = document.getElementById('toast-container');
+      const toastText = document.getElementById('toast-text');
+      const toastMsg = document.getElementById('toast-message');
+
+      toastText.textContent = message;
+      if (isError) {
+        toastMsg.className = 'bg-rose-600 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl border border-rose-400 flex items-center space-x-2';
+      } else {
+        toastMsg.className = 'bg-emerald-600 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl border border-emerald-400 flex items-center space-x-2';
+      }
+
+      toastContainer.classList.remove('opacity-0', '-translate-y-2');
+      toastContainer.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toastContainer.classList.remove('opacity-100', 'translate-y-0');
+        toastContainer.classList.add('opacity-0', '-translate-y-2');
+      }, 4000);
+    }
+
+    // Load saved settings from phone's localStorage
+    let storedApiKey = '';
+    let storedSchedule = '09:00';
+    let storedVoice = 'Aoede';
+    let storedModel = 'models/gemini-2.0-flash-exp';
+
+    try {
+      storedApiKey = localStorage.getItem('tara_api_key') || localStorage.getItem('gemini_api_key') || '';
+      storedSchedule = localStorage.getItem('tara_schedule_time') || '09:00';
+      storedVoice = localStorage.getItem('tara_voice') || 'Aoede';
+      storedModel = localStorage.getItem('tara_model') || 'models/gemini-2.0-flash-exp';
+    } catch (e) {}
+
+    const inputApiKey = document.getElementById('input-api-key');
+    const inputSchedule = document.getElementById('input-schedule-time');
+    const selectVoice = document.getElementById('select-voice');
+    const selectModel = document.getElementById('select-model');
+    const scheduleCountdown = document.getElementById('schedule-countdown');
+
+    const btnToggleKey = document.getElementById('btn-toggle-key-visibility');
+    const textKeyVisibility = document.getElementById('text-key-visibility');
+    const btnClearKey = document.getElementById('btn-clear-key');
+    const btnSaveKey = document.getElementById('btn-save-key');
+    const btnRunDiagnostics = document.getElementById('btn-run-diagnostics');
+
+    inputApiKey.value = storedApiKey;
+    inputSchedule.value = storedSchedule;
+    selectVoice.value = storedVoice;
+    selectModel.value = storedModel;
+
+    // Toggle Show / Hide API Key
+    btnToggleKey.addEventListener('click', () => {
+      if (inputApiKey.type === 'password') {
+        inputApiKey.type = 'text';
+        textKeyVisibility.textContent = 'Hide';
+      } else {
+        inputApiKey.type = 'password';
+        textKeyVisibility.textContent = 'Show';
+      }
+    });
+
+    // Clear API Key button
+    btnClearKey.addEventListener('click', () => {
+      inputApiKey.value = '';
+      try {
+        localStorage.removeItem('tara_api_key');
+        localStorage.removeItem('gemini_api_key');
+      } catch (e) {}
+      showToast('API key cleared from phone storage', false);
+    });
+
+    // Explicit Save Key button
+    btnSaveKey.addEventListener('click', () => {
+      const trimmedKey = inputApiKey.value.trim();
+      inputApiKey.value = trimmedKey;
+      if (!trimmedKey) {
+        showToast('Please enter an API key first');
+        return;
+      }
+      try {
+        localStorage.setItem('tara_api_key', trimmedKey);
+        localStorage.setItem('gemini_api_key', trimmedKey);
+        showToast('✓ Tara API Key saved securely', false);
+      } catch (e) {
+        showToast('Could not save key: ' + e.message);
+      }
+    });
+
+    // 1-Click Diagnostics Tool
+    btnRunDiagnostics.addEventListener('click', async () => {
+      const key = inputApiKey.value.trim();
+      const diagKey = document.getElementById('diag-key');
+      const diagMic = document.getElementById('diag-mic');
+      const diagSocket = document.getElementById('diag-socket');
+      const diagSummary = document.getElementById('diag-summary');
+
+      if (!key) {
+        showToast('Enter your API key first to run diagnostics');
+        diagSummary.textContent = 'Key missing';
+        diagKey.innerHTML = '<span class="text-rose-400">✗ Step 1: No API key entered</span>';
+        return;
+      }
+
+      diagSummary.textContent = 'Testing...';
+
+      // Step 1: REST API Key Validation
+      diagKey.innerHTML = '<span class="text-sky-300 animate-pulse">• Testing key with Google AI Studio...</span>';
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        const data = await res.json();
+        if (!res.ok) {
+          const errDetail = data.error ? data.error.message : res.statusText;
+          diagKey.innerHTML = `<span class="text-rose-400">✗ Key Rejected (${res.status}): ${errDetail}</span>`;
+          diagSummary.textContent = 'Failed';
+          showToast(`Google rejected key: ${errDetail}`, true);
+          return;
+        } else {
+          diagKey.innerHTML = '<span class="text-emerald-400">✓ Step 1 (API Key): Valid & Active</span>';
+        }
+      } catch (e) {
+        diagKey.innerHTML = `<span class="text-rose-400">✗ Step 1 Network: ${e.message}</span>`;
+        diagSummary.textContent = 'Network error';
+        return;
+      }
+
+      // Step 2: Microphone Permission Check
+      diagMic.innerHTML = '<span class="text-sky-300 animate-pulse">• Requesting microphone permission...</span>';
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          diagMic.innerHTML = '<span class="text-amber-400">⚠️ Step 2: getUserMedia unavailable on this origin</span>';
+        } else {
+          const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          testStream.getTracks().forEach(t => t.stop());
+          diagMic.innerHTML = '<span class="text-emerald-400">✓ Step 2 (Microphone): Permission Granted</span>';
+        }
+      } catch (e) {
+        diagMic.innerHTML = `<span class="text-amber-400">⚠️ Step 2 (Mic): ${e.message} (Gemini speech will still work)</span>`;
+      }
+
+      // Step 3: Test WebSocket Handshake
+      diagSocket.innerHTML = '<span class="text-sky-300 animate-pulse">• Testing Gemini Live WebSocket (v1beta)...</span>';
+      const testModel = selectModel.value;
+      const testWsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
+
+      const testWs = new WebSocket(testWsUrl);
+      let socketResolved = false;
+
+      const timeoutId = setTimeout(() => {
+        if (!socketResolved) {
+          testWs.close();
+          diagSocket.innerHTML = '<span class="text-rose-400">✗ Step 3: WebSocket connection timed out</span>';
+          diagSummary.textContent = 'Timeout';
+        }
+      }, 7000);
+
+      testWs.onopen = () => {
+        const setupMsg = {
+          setup: {
+            model: testModel,
+            generationConfig: {
+              responseModalities: ['AUDIO'],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: selectVoice.value } }
+              }
+            }
+          }
+        };
+        testWs.send(JSON.stringify(setupMsg));
+      };
+
+      testWs.onmessage = async (event) => {
+        let d;
+        try {
+          d = typeof event.data === 'string' ? JSON.parse(event.data) : JSON.parse(await event.data.text());
+        } catch (e) { return; }
+
+        if (d.setupComplete) {
+          socketResolved = true;
+          clearTimeout(timeoutId);
+          testWs.close();
+          diagSocket.innerHTML = '<span class="text-emerald-400">✓ Step 3 (Live WebSocket): Handshake SUCCESS!</span>';
+          diagSummary.textContent = 'All Systems Go!';
+          showToast('✓ Everything verified! Tara is ready to call.', false);
+        }
+      };
+
+      testWs.onclose = (ev) => {
+        if (!socketResolved) {
+          socketResolved = true;
+          clearTimeout(timeoutId);
+          let reason = ev.reason ? ` (${ev.reason})` : '';
+          diagSocket.innerHTML = `<span class="text-rose-400">✗ Step 3: Closed code ${ev.code}${reason}</span>`;
+          diagSummary.textContent = `Error ${ev.code}`;
+          if (ev.code === 1008) {
+            showToast('Code 1008: Check Google Cloud Console key restrictions', true);
+          }
+        }
+      };
+    });
+
+    // Auto-save on change
+    inputApiKey.addEventListener('input', () => {
+      try {
+        localStorage.setItem('tara_api_key', inputApiKey.value.trim());
+        localStorage.setItem('gemini_api_key', inputApiKey.value.trim());
+      } catch (e) {}
+    });
+    inputSchedule.addEventListener('change', () => {
+      try { localStorage.setItem('tara_schedule_time', inputSchedule.value); } catch (e) {}
+      updateCountdown();
+    });
+    selectVoice.addEventListener('change', () => {
+      try { localStorage.setItem('tara_voice', selectVoice.value); } catch (e) {}
+    });
+    selectModel.addEventListener('change', () => {
+      try { localStorage.setItem('tara_model', selectModel.value); } catch (e) {}
+    });
+
+    // Clock and schedule ticker
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      document.getElementById('current-clock-display').textContent = timeStr;
+
+      const targetTime = inputSchedule.value;
+      if (timeStr === targetTime && now.getSeconds() === 0) {
+        if (document.getElementById('screen-active-call').classList.contains('hidden') &&
+            document.getElementById('screen-ringing').classList.contains('hidden')) {
+          triggerIncomingCall();
+        }
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function updateCountdown() {
+      const [h, m] = inputSchedule.value.split(':');
+      const hour12 = (parseInt(h) % 12 || 12).toString().padStart(2, '0');
+      const ampm = parseInt(h) >= 12 ? 'PM' : 'AM';
+      scheduleCountdown.textContent = `Tara calls at: ${hour12}:${m} ${ampm}`;
+    }
+    updateCountdown();
+
+    // --- Web Audio Synthesizer: Authentic Phone Ringtone ---
+    function startRingtone() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ringCtx = new AudioCtx();
+        const osc1 = ringCtx.createOscillator();
+        const osc2 = ringCtx.createOscillator();
+        const gainNode = ringCtx.createGain();
+
+        osc1.frequency.value = 440;
+        osc2.frequency.value = 480;
+
+        gainNode.gain.setValueAtTime(0, ringCtx.currentTime);
+
+        function applyRingCadence() {
+          const t = ringCtx.currentTime;
+          gainNode.gain.setValueAtTime(0.2, t);
+          gainNode.gain.setValueAtTime(0, t + 1.8);
+        }
+
+        applyRingCadence();
+        const ringCadenceInterval = setInterval(applyRingCadence, 4000);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ringCtx.destination);
+
+        osc1.start();
+        osc2.start();
+
+        ringtoneOscillator = { osc1, osc2, ringCtx, ringCadenceInterval };
+
+        if (navigator.vibrate) {
+          navigator.vibrate([600, 300, 600, 2000]);
+        }
+      } catch (err) {
+        console.warn('Ringtone sound init error:', err);
+      }
+    }
+
+    function stopRingtone() {
+      if (ringtoneOscillator) {
+        clearInterval(ringtoneOscillator.ringCadenceInterval);
+        try {
+          ringtoneOscillator.osc1.stop();
+          ringtoneOscillator.osc2.stop();
+          ringtoneOscillator.ringCtx.close();
+        } catch (e) {}
+        ringtoneOscillator = null;
+      }
+      if (navigator.vibrate) navigator.vibrate(0);
+    }
+
+    // --- Screen Transitions ---
+    function showScreen(screenId) {
+      document.getElementById('screen-dashboard').classList.add('hidden');
+      document.getElementById('screen-ringing').classList.add('hidden');
+      document.getElementById('screen-active-call').classList.add('hidden');
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function triggerIncomingCall() {
+      showScreen('screen-ringing');
+      startRingtone();
+    }
+
+    document.getElementById('btn-trigger-now').addEventListener('click', () => {
+      triggerIncomingCall();
+    });
+
+    document.getElementById('btn-decline-call').addEventListener('click', () => {
+      stopRingtone();
+      showScreen('screen-dashboard');
+    });
+
+    // --- Active Live Session Connection ---
+    document.getElementById('btn-answer-call').addEventListener('click', async () => {
+      stopRingtone();
+      showScreen('screen-active-call');
+
+      const apiKey = inputApiKey.value.trim();
+      if (!apiKey) {
+        showToast('Please enter your Gemini API Key in Settings first.');
+        showScreen('screen-dashboard');
+        return;
+      }
+
+      await startGeminiLiveSession(apiKey);
+    });
+
+    document.getElementById('btn-end-call').addEventListener('click', () => {
+      endLiveSession();
+      showScreen('screen-dashboard');
+    });
+
+    // Mic Mute Toggle
+    document.getElementById('btn-toggle-mute').addEventListener('click', () => {
+      isMuted = !isMuted;
+      document.getElementById('icon-mic-on').classList.toggle('hidden', isMuted);
+      document.getElementById('icon-mic-off').classList.toggle('hidden', !isMuted);
+      if (isMuted) {
+        showToast('Microphone muted', false);
+      } else {
+        showToast('Microphone active', false);
+      }
+    });
+
+    // Speaker Output Mute Toggle
+    document.getElementById('btn-toggle-speaker').addEventListener('click', () => {
+      isSpeakerMuted = !isSpeakerMuted;
+      document.getElementById('icon-speaker-on').classList.toggle('hidden', isSpeakerMuted);
+      document.getElementById('icon-speaker-off').classList.toggle('hidden', !isSpeakerMuted);
+      if (isSpeakerMuted) {
+        stopPlayingAudio();
+        showToast('Speaker muted', false);
+      } else {
+        showToast('Speaker active', false);
+      }
+    });
+
+    // --- Gemini Multimodal Live API Over WebSockets (v1beta) ---
+    async function startGeminiLiveSession(apiKey) {
+      const transcriptBox = document.getElementById('transcript-stream');
+      transcriptBox.innerHTML = '<p class="text-sky-300">Connecting to Tara (v1beta)...</p>';
+      sessionInitialized = false;
+
+      callSeconds = 0;
+      document.getElementById('call-duration').textContent = '00:00';
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('call-duration').textContent = `${mins}:${secs}`;
+      }, 1000);
+
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext || audioContext.state === 'closed') {
+          audioContext = new AudioCtx({ sampleRate: 24000 });
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        nextAudioPlayTime = audioContext.currentTime;
+
+        // OFFICIAL v1beta BidiGenerateContent WebSocket Endpoint
+        const host = 'generativelanguage.googleapis.com';
+        const url = `wss://${host}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+
+        webSocket = new WebSocket(url);
+
+        webSocket.onopen = () => {
+          transcriptBox.innerHTML += '<p class="text-emerald-400">✓ Connected. Tara negotiating setup...</p>';
+
+          const voice = selectVoice.value;
+          const modelName = selectModel.value;
+          const setupMsg = {
+            setup: {
+              model: modelName,
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: voice }
+                  }
+                }
+              },
+              systemInstruction: {
+                parts: [{
+                  text: "You are Tara, a warm, supportive, proactive, and punctual personal accountability partner and productivity assistant. Every day at this scheduled time, you initiate an audio call with the user to do a daily standup. Keep your spoken responses concise, conversational, and direct (1 to 3 sentences at a time). Do not produce markdown, bullets, or lists; speak naturally as if you are on a live phone call. 1. Greet the user warmly and introduce yourself as Tara, asking what they accomplished today. 2. Ask if there are any blockers or tasks pending. 3. Check if there are updates or priorities for tomorrow. 4. Encourage them and gracefully wrap up when they say they are done."
+                }]
+              }
+            }
+          };
+          webSocket.send(JSON.stringify(setupMsg));
+        };
+
+        webSocket.onmessage = async (event) => {
+          try {
+            let data;
+            if (typeof event.data === 'string') {
+              data = JSON.parse(event.data);
+            } else {
+              const text = await event.data.text();
+              data = JSON.parse(text);
+            }
+
+            if (data.setupComplete) {
+              sessionInitialized = true;
+              transcriptBox.innerHTML += '<p class="text-emerald-400 font-semibold">✓ Setup confirmed! Tara is speaking now...</p>';
+              document.getElementById('live-audio-status').textContent = 'Tara is speaking...';
+
+              const proactiveKickoff = {
+                clientContent: {
+                  turns: [{
+                    role: 'user',
+                    parts: [{
+                      text: "Start the conversation immediately in spoken voice. Greet me warmly as Tara and ask: 'Hey! This is Tara, just checking in for our daily standup. Have you finished today's tasks? Is anything pending, or do you have any updates for me?'"
+                    }]
+                  }],
+                  turnComplete: true
+                }
+              };
+              webSocket.send(JSON.stringify(proactiveKickoff));
+
+              setupMicrophoneStreaming().catch(err => {
+                transcriptBox.innerHTML += `<p class="text-amber-400 text-[11px]">Mic notice: ${err.message}. (Tara voice playback remains active).</p>`;
+              });
+              return;
+            }
+
+            if (data.serverContent) {
+              const serverContent = data.serverContent;
+
+              if (serverContent.interrupted) {
+                stopPlayingAudio();
+                document.getElementById('live-audio-status').textContent = 'Listening to you...';
+              }
+
+              if (serverContent.modelTurn) {
+                document.getElementById('live-audio-status').textContent = 'Tara is speaking...';
+                document.getElementById('ai-active-glow').classList.remove('opacity-0');
+                animateWaves(true);
+
+                for (const part of serverContent.modelTurn.parts || []) {
+                  if (part.inlineData && part.inlineData.mimeType.startsWith('audio/pcm')) {
+                    if (!isSpeakerMuted) {
+                      playIncomingAudioChunk(part.inlineData.data);
+                    }
+                  }
+                  if (part.text) {
+                    transcriptBox.innerHTML += `<p class="text-white"><strong class="text-fuchsia-400">Tara:</strong> ${part.text}</p>`;
+                    transcriptBox.scrollTop = transcriptBox.scrollHeight;
+                  }
+                }
+              }
+
+              if (serverContent.turnComplete) {
+                setTimeout(() => {
+                  document.getElementById('live-audio-status').textContent = 'Listening to you...';
+                  document.getElementById('ai-active-glow').classList.add('opacity-0');
+                  animateWaves(false);
+                }, 800);
+              }
+            }
+          } catch (err) {
+            console.error('WebSocket payload parsing error:', err);
+          }
+        };
+
+        webSocket.onerror = (e) => {
+          console.error('WebSocket error:', e);
+          transcriptBox.innerHTML += `<p class="text-rose-400">WebSocket connection error. Check network & API key.</p>`;
+        };
+
+        webSocket.onclose = (event) => {
+          console.log('WebSocket closed code:', event.code, 'reason:', event.reason);
+          let reasonMsg = event.reason || '';
+          if (event.code === 1008) {
+            reasonMsg = 'Policy Violation (1008). Ensure your API Key has "Application restrictions: None" in Google Cloud Console. Run Diagnostics to inspect.';
+          } else if (event.code === 1006) {
+            reasonMsg = 'Network connection interrupted.';
+          }
+          transcriptBox.innerHTML += `<p class="text-rose-400 font-medium text-[11px]">Session closed (Code ${event.code}: ${reasonMsg})</p>`;
+          document.getElementById('live-audio-status').textContent = 'Call ended';
+          animateWaves(false);
+        };
+
+      } catch (err) {
+        transcriptBox.innerHTML += `<p class="text-rose-400">Audio init error: ${err.message}</p>`;
+      }
+    }
+
+    function animateWaves(isActive) {
+      const heights = isActive ? [14, 28, 42, 20, 34] : [12, 24, 40, 16, 32];
+      ['wave-1', 'wave-2', 'wave-3', 'wave-4', 'wave-5'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.style.height = `${heights[idx]}px`;
+      });
+    }
+
+    // Capture User Mic and Stream 16kHz PCM chunks
+    async function setupMicrophoneStreaming() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone not available (HTTPS or localhost required)');
+      }
+
+      micMediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const micAudioCtx = new AudioCtx({ sampleRate: 16000 });
+      const source = micAudioCtx.createMediaStreamSource(micMediaStream);
+
+      scriptProcessor = micAudioCtx.createScriptProcessor(2048, 1, 1);
+
+      scriptProcessor.onaudioprocess = (e) => {
+        if (isMuted || !webSocket || webSocket.readyState !== WebSocket.OPEN || !sessionInitialized) return;
+
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        let binary = '';
+        const bytes = new Uint8Array(pcm16.buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Audio = btoa(binary);
+
+        const audioMsg = {
+          realtimeInput: {
+            mediaChunks: [{
+              mimeType: 'audio/pcm;rate=16000',
+              data: base64Audio
+            }]
+          }
+        };
+        webSocket.send(JSON.stringify(audioMsg));
+      };
+
+      source.connect(scriptProcessor);
+      scriptProcessor.connect(micAudioCtx.destination);
+    }
+
+    // Play 24kHz PCM chunks received from Gemini
+    function playIncomingAudioChunk(base64Data) {
+      if (!audioContext) return;
+
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      const binaryStr = atob(base64Data);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+
+      const pcm16 = new Int16Array(bytes.buffer);
+      const float32 = new Float32Array(pcm16.length);
+      for (let i = 0; i < pcm16.length; i++) {
+        float32[i] = pcm16[i] / 32768.0;
+      }
+
+      const audioBuffer = audioContext.createBuffer(1, float32.length, 24000);
+      audioBuffer.copyToChannel(float32, 0);
+
+      const sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(audioContext.destination);
+
+      const currentTime = audioContext.currentTime;
+      if (nextAudioPlayTime < currentTime) {
+        nextAudioPlayTime = currentTime;
+      }
+
+      sourceNode.start(nextAudioPlayTime);
+      nextAudioPlayTime += audioBuffer.duration;
+
+      activeAudioSources.push(sourceNode);
+      sourceNode.onended = () => {
+        const idx = activeAudioSources.indexOf(sourceNode);
+        if (idx !== -1) activeAudioSources.splice(idx, 1);
+      };
+    }
+
+    function stopPlayingAudio() {
+      activeAudioSources.forEach(src => {
+        try { src.stop(); } catch (e) {}
+      });
+      activeAudioSources = [];
+      if (audioContext) {
+        nextAudioPlayTime = audioContext.currentTime;
+      }
+    }
+
+    function endLiveSession() {
+      clearInterval(callTimerInterval);
+      stopPlayingAudio();
+      stopRingtone();
+
+      if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+      }
+      if (micMediaStream) {
+        micMediaStream.getTracks().forEach(track => track.stop());
+        micMediaStream = null;
+      }
+      if (webSocket) {
+        webSocket.close();
+        webSocket = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+      document.getElementById('ai-active-glow').classList.add('opacity-0');
+      sessionInitialized = false;
+    }
+  </script>
+</body>
+</html>
